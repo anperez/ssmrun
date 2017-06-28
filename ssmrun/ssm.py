@@ -13,7 +13,7 @@ class Ssm(object):
         self.InstanceIds = []
 
     def list_documents(self):
-        """ Returng a list of SSM Docutments """
+        """ Return a list of SSM Docutments """
         response = self.client.list_documents(MaxResults=ssm_max_results)
         docs = response['DocumentIdentifiers']
         while True:
@@ -38,39 +38,42 @@ class Ssm(object):
         )
         return response['Command']
 
-    def list_commands_by_command_id(self, CommandId):
-        response = self.client.list_commands(
-            CommandId=CommandId,
-            MaxResults=ssm_max_results
-        )
+    def list_commands(self, CommandId=None, InstanceId=None):
+        params = {
+            'MaxResults': ssm_max_results
+        }
+        if CommandId:
+            params['CommandId'] = CommandId
+        if InstanceId:
+            params['InstanceId'] = InstanceId
+
+        response = self.client.list_commands(**params)
         commands = response['Commands']
         while True:
             if 'NextToken' not in response:
                 break
-            response = self.client.list_commands(
-                NextToken=response['NextToken'],
-                CommandId=CommandId,
-                MaxResults=ssm_max_results
-            )
+            params['NextToken'] = response['NextToken']
+            response = self.client.list_commands(**params)
         commands += response['Commands']
         return commands
 
-    def list_command_invocations(self, CommandId, Details=False):
-        response = self.client.list_command_invocations(
-            CommandId=CommandId,
-            MaxResults=ssm_max_results,
-            Details=Details
-        )
+    def list_command_invocations(self, CommandId=None, InstanceId=None, Details=False):
+        params = {
+            'MaxResults': ssm_max_results,
+            'Details': Details
+        }
+        if CommandId:
+            params['CommandId'] = CommandId
+        if InstanceId:
+            params['InstanceId'] = InstanceId
+
+        response = self.client.list_command_invocations(**params)
         invocations = response['CommandInvocations']
         while True:
             if 'NextToken' not in response:
                 break
-            response = self.client.list_command_invocations(
-                NextToken=response['NextToken'],
-                CommandId=CommandId,
-                MaxResults=ssm_max_results,
-                Details=Details
-            )
+            params['NextToken'] = response['NextToken']
+            response = self.client.list_command_invocations(**params)
             invocations += response['CommandInvocations']
         return invocations
 
