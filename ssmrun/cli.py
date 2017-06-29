@@ -4,7 +4,7 @@ import sys
 import time
 import datetime
 import click
-from cfntools import __version__
+from ssmrun import __version__
 from ssm import Ssm
 
 
