@@ -12,6 +12,7 @@ sys.tracebacklimit = 0
 
 lpad = 13
 lfill = '%13s'
+rfill = '%s13'
 
 
 @click.command()
@@ -20,7 +21,7 @@ lfill = '%13s'
 @click.option('-s', '--show-stats', is_flag=True)
 @click.option('-o', '--show-output', is_flag=True)
 @click.option('-k', '--target-key', default='Name', help='Target tag key (default: Name)')
-@click.option('-c', '--comment', default='', help='Command invocation comment')
+@click.option('-c', '--comment', default='ssmrun cli', help='Command invocation comment')
 @click.option('-i', '--interval', default=1.0, help='Check interval (default: 1.0s)')
 @click.option('-p', '--profile', default=None, help='AWS profile')
 @click.option('-r', '--region', default=None, help='AWS region')
@@ -30,7 +31,6 @@ def run(ssm_docutment, target, show_stats, show_output, target_key, comment, int
     cmd = ssm.send_command_to_targets(
         document=ssm_docutment, key=target_key, value=target, comment=comment)
     print '==> ' + ssm.command_url(cmd['CommandId'])
-    print 'Command ID: ' + cmd['CommandId']
 
     while True:
         time.sleep(interval)
@@ -38,7 +38,7 @@ def run(ssm_docutment, target, show_stats, show_output, target_key, comment, int
         # Print final results when done
         if out[0]['Status'] not in ['Pending', 'InProgress']:
             if out[0]['TargetCount'] == out[0]['CompletedCount']:
-                command_stats(cmd['CommandId'], out[0])
+                command_stats(out[0])
                 if show_stats or show_output:
                     res = ssm.list_command_invocations(
                         cmd['CommandId'], Details=True)
@@ -65,7 +65,7 @@ def show(command_id, instanceid, show_stats, show_output, profile, region):
     ssm = Ssm(profile=profile, region=region)
     out = ssm.list_commands(CommandId=command_id, InstanceId=instanceid)
     url = ssm.command_url(command_id)
-    command_stats(command_id, out[0], url)
+    command_stats(out[0], url)
 
     if show_stats or show_output:
         res = ssm.list_command_invocations(
@@ -82,12 +82,12 @@ def show(command_id, instanceid, show_stats, show_output, profile, region):
 @click.option('-P', '--platform', is_flag=True, help='Show platform types')
 @click.option('-d', '--doc-version', is_flag=True, help='Show document version')
 @click.option('-t', '--doc-type', is_flag=True, help='Show document type')
-@click.option('-t', '--schema', is_flag=True, help='Show schema version')
+@click.option('-s', '--schema', is_flag=True, help='Show schema version')
 @click.option('-p', '--profile', default=None, help='AWS profile')
 @click.option('-r', '--region', default=None, help='AWS region')
 @click.pass_context
 def docs(ctx, ssm_docutment, long_list, owner, platform, doc_version, doc_type, schema, profile, region):
-    """List SSM Docutments"""
+    """List SSM docutments"""
     ssm = Ssm(profile=profile, region=region)
     docs = ssm.list_documents()
     param_map = {
@@ -123,21 +123,18 @@ def docs(ctx, ssm_docutment, long_list, owner, platform, doc_version, doc_type, 
 
 
 @click.command()
-@click.option('-u', '--invocation-url', is_flag=True, help='Print command invocation url')
-@click.option('-n', '--num-invocations', default=5, help='Number of invocations')
+@click.option('-n', '--num-invocations', default=5, help='Number of invocations (defailt: 5)')
 @click.option('-s', '--show-stats', is_flag=True)
 @click.option('-p', '--profile', default=None, help='AWS profile')
 @click.option('-r', '--region', default=None, help='AWS region')
-def ls(invocation_url, num_invocations, show_stats, profile, region):
-    """List SSM Command Invocations"""
+def ls(num_invocations, show_stats, profile, region):
+    """List SSM command invocations"""
     ssm = Ssm(profile=profile, region=region)
     invocations = ssm.list_commands()
     for i in invocations[: num_invocations]:
-        url = None
-        if invocation_url:
-            url = ssm.command_url(i['CommandId'])
+        url = ssm.command_url(i['CommandId'])
 
-        command_stats(i['CommandId'], i, url)
+        command_stats(i, url)
         if show_stats:
             res = ssm.list_command_invocations(
                 i['CommandId'], Details=True)
@@ -147,16 +144,16 @@ def ls(invocation_url, num_invocations, show_stats, profile, region):
                 print
 
 
-def command_stats(commandId, invocation, invocation_url=None):
+def command_stats(invocation, invocation_url=None):
     if invocation_url:
         print '==> ' + invocation_url
 
     i = invocation
-    print lfill % ('[' + i['Status'] + '] ') + \
-        i['CommandId'] + ' ' + \
-        i['DocumentName']
-    print ' ' * lpad + str(i['RequestedDateTime'])
-    print ' ' * lpad + 'Targets: ' + str(i['TargetCount']) + \
+    print lfill % ('[' + i['Status'] + '] ') + i['CommandId']
+    print ' ' * lpad + 'Requested: '.ljust(lpad) + str(i['RequestedDateTime'].replace(microsecond=0))
+    print ' ' * lpad + 'Docutment: '.ljust(lpad) + i['DocumentName']
+    print ' ' * lpad + 'Target: '.ljust(lpad) + i['Targets'][0]['Key'] + ' - ' + i['Targets'][0]['Values'][0]
+    print ' ' * lpad + 'Stats: '.ljust(lpad) + 'Targets: ' + str(i['TargetCount']) + \
         ' Completed: ' + str(i['CompletedCount']) + \
         ' Errors: ' + str(i['ErrorCount'])
 
