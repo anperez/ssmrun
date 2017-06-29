@@ -153,6 +153,7 @@ def ls(num_invocations, show_stats, profile, region):
 
 
 def command_stats(invocation, invocation_url=None):
+    """Print results from ssm.list_commands()"""
     if invocation_url:
         print '==> ' + invocation_url
 
@@ -160,16 +161,21 @@ def command_stats(invocation, invocation_url=None):
     print lfill % ('[' + i['Status'] + '] ') + i['CommandId']
     print ' ' * lpad + 'Requested: '.ljust(lpad) + str(i['RequestedDateTime'].replace(microsecond=0))
     print ' ' * lpad + 'Docutment: '.ljust(lpad) + i['DocumentName']
-    print ' ' * lpad + 'Paramters: '.ljust(lpad)
-    for k, v in i['Parameters'].iteritems():
-        print ' ' * lpad * 2 + '- ' + k + '="' + v[0] + '"'
-    print ' ' * lpad + 'Target: '.ljust(lpad) + i['Targets'][0]['Key'] + ' - ' + i['Targets'][0]['Values'][0]
+    if len(i['Parameters']) > 0:
+        print ' ' * lpad + 'Paramters: '.ljust(lpad)
+        for k, v in i['Parameters'].iteritems():
+            print ' ' * lpad * 2 + '- ' + k + '="' + v[0] + '"'
+    if len(i['InstanceIds']) > 0:
+        print ' ' * lpad + 'InstanceIds: '.ljust(lpad) + str(','.join(i['InstanceIds']))
+    if len(i['Targets']) > 0:
+        print ' ' * lpad + 'Target: '.ljust(lpad) + i['Targets'][0]['Key'] + ' - ' + i['Targets'][0]['Values'][0]
     print ' ' * lpad + 'Stats: '.ljust(lpad) + 'Targets: ' + str(i['TargetCount']) + \
         ' Completed: ' + str(i['CompletedCount']) + \
         ' Errors: ' + str(i['ErrorCount'])
 
 
 def print_command_output_per_instance(invocations, show_output=False):
+    """Print results from ssm.list_command_invocations()"""
     for i in invocations:
         print ' ' * lpad + ' '.join(['***', i['Status'], i['InstanceId'], i['InstanceName']])
         if show_output:
