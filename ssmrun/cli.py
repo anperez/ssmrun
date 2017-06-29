@@ -2,7 +2,6 @@
 
 import sys
 import time
-import datetime
 import click
 from ssmrun import __version__
 from ssm import Ssm
@@ -16,8 +15,9 @@ rfill = '%s13'
 
 
 @click.command()
-@click.argument('ssm-docutment')
+@click.argument('ssm-document')
 @click.argument('target')
+@click.option('-P', '--parameter', default=None, multiple=True, help='Pass one or more params (ex: -P p1="v1" -P p2="v2")')
 @click.option('-s', '--show-stats', is_flag=True)
 @click.option('-o', '--show-output', is_flag=True)
 @click.option('-k', '--target-key', default='Name', help='Target tag key (default: Name)')
@@ -25,11 +25,19 @@ rfill = '%s13'
 @click.option('-i', '--interval', default=1.0, help='Check interval (default: 1.0s)')
 @click.option('-p', '--profile', default=None, help='AWS profile')
 @click.option('-r', '--region', default=None, help='AWS region')
-def run(ssm_docutment, target, show_stats, show_output, target_key, comment, interval, profile, region):
+def run(ssm_document, target, parameter, show_stats, show_output, target_key, comment, interval, profile, region):
     """Send SSM command to target"""
+    # Parse parameters for the SSM Command
+    ssm_params = {}
+    if parameter:
+        for p in parameter:
+            k, v = p.split('=', 1)
+            ssm_params[k] = [v]
+
     ssm = Ssm(profile=profile, region=region)
     cmd = ssm.send_command_to_targets(
-        document=ssm_docutment, key=target_key, value=target, comment=comment)
+        document=ssm_document, key=target_key, value=target,
+        comment=comment, parameters=ssm_params)
     print '==> ' + ssm.command_url(cmd['CommandId'])
 
     while True:
@@ -131,7 +139,7 @@ def ls(num_invocations, show_stats, profile, region):
     """List SSM command invocations"""
     ssm = Ssm(profile=profile, region=region)
     invocations = ssm.list_commands()
-    for i in invocations[: num_invocations]:
+    for i in invocations[:num_invocations]:
         url = ssm.command_url(i['CommandId'])
 
         command_stats(i, url)
@@ -152,6 +160,9 @@ def command_stats(invocation, invocation_url=None):
     print lfill % ('[' + i['Status'] + '] ') + i['CommandId']
     print ' ' * lpad + 'Requested: '.ljust(lpad) + str(i['RequestedDateTime'].replace(microsecond=0))
     print ' ' * lpad + 'Docutment: '.ljust(lpad) + i['DocumentName']
+    print ' ' * lpad + 'Paramters: '.ljust(lpad)
+    for k, v in i['Parameters'].iteritems():
+        print ' ' * lpad * 2 + '- ' + k + '="' + v[0] + '"'
     print ' ' * lpad + 'Target: '.ljust(lpad) + i['Targets'][0]['Key'] + ' - ' + i['Targets'][0]['Values'][0]
     print ' ' * lpad + 'Stats: '.ljust(lpad) + 'Targets: ' + str(i['TargetCount']) + \
         ' Completed: ' + str(i['CompletedCount']) + \

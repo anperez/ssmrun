@@ -24,7 +24,7 @@ class Ssm(object):
             docs += response['DocumentIdentifiers']
         return docs
 
-    def send_command_to_targets(self, document, key, value, comment):
+    def send_command_to_targets(self, document, key, value, comment, parameters):
         """ Send command to key/value taget """
         response = self.client.send_command(
             Targets=[
@@ -34,6 +34,7 @@ class Ssm(object):
                 },
             ],
             DocumentName=document,
+            Parameters=parameters,
             Comment=comment
         )
         return response['Command']
