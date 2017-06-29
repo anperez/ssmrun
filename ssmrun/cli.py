@@ -78,34 +78,73 @@ def show(command_id, instanceid, show_stats, show_output, profile, region):
 @click.command()
 @click.argument('ssm-docutment', default='')
 @click.option('-l', '--long-list', is_flag=True, help='Detailed list')
+@click.option('-o', '--owner', is_flag=True, help='Show owner')
+@click.option('-P', '--platform', is_flag=True, help='Show platform types')
+@click.option('-d', '--doc-version', is_flag=True, help='Show document version')
+@click.option('-t', '--doc-type', is_flag=True, help='Show document type')
+@click.option('-t', '--schema', is_flag=True, help='Show schema version')
 @click.option('-p', '--profile', default=None, help='AWS profile')
 @click.option('-r', '--region', default=None, help='AWS region')
-def docs(ssm_docutment, long_list, profile, region):
+@click.pass_context
+def docs(ctx, ssm_docutment, long_list, owner, platform, doc_version, doc_type, schema, profile, region):
     """List SSM Docutments"""
     ssm = Ssm(profile=profile, region=region)
     docs = ssm.list_documents()
+    param_map = {
+        'owner': 'Owner',
+        'platform': 'PlatformTypes',
+        'doc_version': 'DocumentVersion',
+        'doc_type': 'DocumentType',
+        'schema': 'SchemaVersion'
+    }
     print 'total ' + str(len(docs))
+    # Map flag params to boto3 SSM list_documents() response
+    output = []
     for d in docs:
-        if long_list:
-            print d['Name'], d['Owner'], d['PlatformTypes'], d['DocumentVersion'], d['DocumentType'], d['SchemaVersion']
-        else:
-            print d['Name']
+        doc_info = [d['Name']]
+        for k, v in param_map.iteritems():
+            # If flag param is set output the response value
+            if ctx.params[k] or long_list:
+                if v == 'PlatformTypes':
+                    # Take first char from each element in the list (ex: WL)
+                    doc_info.append(''.join(map(lambda x: x[0], d[v])))
+                else:
+                    doc_info.append(d[v])
+        output.append(doc_info)
+
+    # Find the longest N index across doc_info lists in output
+    # Use the generated list for text padding the output
+    pad = [reduce(lambda a, b: a if (len(a) > len(b)) else b, x)
+           for x in zip(*output)]
+    for d in output:
+        for i in d:
+            print i.ljust(len(pad[d.index(i)])),
+        print
 
 
 @click.command()
-@click.option('-u', '--invocation-url', is_flag=True, help='Command invocation url')
+@click.option('-u', '--invocation-url', is_flag=True, help='Print command invocation url')
+@click.option('-n', '--num-invocations', default=5, help='Number of invocations')
+@click.option('-s', '--show-stats', is_flag=True)
 @click.option('-p', '--profile', default=None, help='AWS profile')
 @click.option('-r', '--region', default=None, help='AWS region')
-def ls(invocation_url, profile, region):
+def ls(invocation_url, num_invocations, show_stats, profile, region):
     """List SSM Command Invocations"""
     ssm = Ssm(profile=profile, region=region)
     invocations = ssm.list_commands()
-    for i in invocations:
+    for i in invocations[: num_invocations]:
+        url = None
         if invocation_url:
             url = ssm.command_url(i['CommandId'])
-            command_stats(i['CommandId'], i, url)
 
-        command_stats(i['CommandId'], i)
+        command_stats(i['CommandId'], i, url)
+        if show_stats:
+            res = ssm.list_command_invocations(
+                i['CommandId'], Details=True)
+            if len(res) != 0:
+                print
+                print_command_output_per_instance(res)
+                print
 
 
 def command_stats(commandId, invocation, invocation_url=None):
@@ -124,7 +163,7 @@ def command_stats(commandId, invocation, invocation_url=None):
 
 def print_command_output_per_instance(invocations, show_output=False):
     for i in invocations:
-        print ' '.join(['***', i['Status'], i['InstanceId'], i['InstanceName']])
+        print ' ' * lpad + ' '.join(['***', i['Status'], i['InstanceId'], i['InstanceName']])
         if show_output:
             for cp in i['CommandPlugins']:
                 print cp['Output']

@@ -23,7 +23,7 @@ setuptools.setup(
                  'ssmrun'},
     entry_points={
         'console_scripts': [
-            'ssmrun=ssmrun.cli:main'
+            'ssm=ssmrun.cli:main'
         ]
     },
 
