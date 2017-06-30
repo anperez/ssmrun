@@ -11,7 +11,6 @@ sys.tracebacklimit = 0
 
 lpad = 13
 lfill = '%13s'
-rfill = '%s13'
 
 
 @click.command()
@@ -84,7 +83,6 @@ def show(command_id, instanceid, show_stats, show_output, profile, region):
 
 
 @click.command()
-@click.argument('ssm-docutment', default='')
 @click.option('-l', '--long-list', is_flag=True, help='Detailed list')
 @click.option('-o', '--owner', is_flag=True, help='Show owner')
 @click.option('-P', '--platform', is_flag=True, help='Show platform types')
@@ -94,7 +92,7 @@ def show(command_id, instanceid, show_stats, show_output, profile, region):
 @click.option('-p', '--profile', default=None, help='AWS profile')
 @click.option('-r', '--region', default=None, help='AWS region')
 @click.pass_context
-def docs(ctx, ssm_docutment, long_list, owner, platform, doc_version, doc_type, schema, profile, region):
+def docs(ctx, long_list, owner, platform, doc_version, doc_type, schema, profile, region):
     """List SSM docutments"""
     ssm = Ssm(profile=profile, region=region)
     docs = ssm.list_documents()
@@ -128,6 +126,19 @@ def docs(ctx, ssm_docutment, long_list, owner, platform, doc_version, doc_type, 
         for i in d:
             print i.ljust(len(pad[d.index(i)])),
         print
+
+
+@click.command()
+@click.argument('ssm-docutment')
+@click.option('-V', '--document-version', default=None, help='Document Version')
+@click.option('-p', '--profile', default=None, help='AWS profile')
+@click.option('-r', '--region', default=None, help='AWS region')
+def get(ssm_docutment, document_version, profile, region):
+    """Get SSM docutment"""
+    ssm = Ssm(profile=profile, region=region)
+    doc = ssm.get_document(ssm_docutment, document_version)
+    print doc['Name'] + ' (' + doc['DocumentVersion'] + ') ' + doc['DocumentType']
+    print doc['Content']
 
 
 @click.command()
@@ -194,6 +205,7 @@ def main(args=None):
     """
 
 main.add_command(docs)
+main.add_command(get)
 main.add_command(ls)
 main.add_command(show)
 main.add_command(run)

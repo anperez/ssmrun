@@ -12,6 +12,13 @@ class Ssm(object):
         self.client = self.session.client('ssm')
         self.InstanceIds = []
 
+    def get_document(self, name, version=None):
+        params = {'Name': name}
+        if version:
+            params['DocumentVersion'] = version
+        response = self.client.get_document(**params)
+        return response
+
     def list_documents(self):
         """ Return a list of SSM Docutments """
         response = self.client.list_documents(MaxResults=ssm_max_results)
