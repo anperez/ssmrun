@@ -19,12 +19,14 @@ lfill = '%13s'
 @click.option('-P', '--parameter', default=None, multiple=True, help='Pass one or more params (ex: -P p1="v1" -P p2="v2")')
 @click.option('-s', '--show-stats', is_flag=True)
 @click.option('-o', '--show-output', is_flag=True)
+@click.option('-A', '--target-asg', is_flag=True)
+@click.option('-S', '--target-stack', is_flag=True)
 @click.option('-k', '--target-key', default='Name', help='Target tag key (default: Name)')
 @click.option('-c', '--comment', default='ssmrun cli', help='Command invocation comment')
 @click.option('-i', '--interval', default=1.0, help='Check interval (default: 1.0s)')
 @click.option('-p', '--profile', default=None, help='AWS profile')
 @click.option('-r', '--region', default=None, help='AWS region')
-def run(ssm_document, target, parameter, show_stats, show_output, target_key, comment, interval, profile, region):
+def run(ssm_document, target, parameter, show_stats, show_output, target_asg, target_stack, target_key, comment, interval, profile, region):
     """Send SSM command to target"""
     # Parse parameters for the SSM Command
     ssm_params = {}
@@ -32,6 +34,12 @@ def run(ssm_document, target, parameter, show_stats, show_output, target_key, co
         for p in parameter:
             k, v = p.split('=', 1)
             ssm_params[k] = [v]
+
+    # Shortcuts for targeting auto scaling groups and CloudFormation Stacks
+    if target_asg:
+        target_key = 'aws:autoscaling:groupName'
+    if target_stack:
+        target_key = 'aws:cloudformation:stack-name'
 
     ssm = Ssm(profile=profile, region=region)
     cmd = ssm.send_command_to_targets(
