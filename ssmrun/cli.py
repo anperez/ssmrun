@@ -145,7 +145,12 @@ def get(ssm_docutment, document_version, profile, region):
     """Get SSM docutment"""
     ssm = Ssm(profile=profile, region=region)
     doc = ssm.get_document(ssm_docutment, document_version)
-    print doc['Name'] + ' (' + doc['DocumentVersion'] + ') ' + doc['DocumentType']
+    doc_info = doc['Name']
+    if 'DocumentVersion' in doc:
+        doc_info += ' v' + doc['DocumentVersion']
+    if 'DocumentType' in doc:
+        doc_info += ' ' + doc['DocumentType']
+    print doc_info
     print doc['Content']
 
 
