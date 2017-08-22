@@ -5,7 +5,7 @@ import time
 import click
 from functools import reduce
 from ssmrun import __version__
-from ssm import Ssm
+from ssmrun.ssm import Ssm
 
 
 sys.tracebacklimit = 0
