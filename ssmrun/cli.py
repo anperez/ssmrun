@@ -3,6 +3,7 @@
 import sys
 import time
 import click
+from functools import reduce
 from ssmrun import __version__
 from ssm import Ssm
 
@@ -45,7 +46,7 @@ def run(ssm_document, target, parameter, show_stats, show_output, target_asg, ta
     cmd = ssm.send_command_to_targets(
         document=ssm_document, key=target_key, value=target,
         comment=comment, parameters=ssm_params)
-    print '==> ' + ssm.command_url(cmd['CommandId'])
+    click.echo('==> ' + ssm.command_url(cmd['CommandId']))
 
     while True:
         time.sleep(interval)
@@ -58,14 +59,15 @@ def run(ssm_document, target, parameter, show_stats, show_output, target_asg, ta
                     res = ssm.list_command_invocations(
                         cmd['CommandId'], Details=True)
                     if len(res) != 0:
-                        print
+                        click.echo()
                         print_command_output_per_instance(res, show_output)
                 break
         # Print progress
-        print lfill % ('[' + out[0]['Status'] + '] ') + \
-            'Targets: ' + str(out[0]['TargetCount']) + \
-            ' Completed: ' + str(out[0]['CompletedCount']) + \
-            ' Errors: ' + str(out[0]['ErrorCount'])
+        click.echo(lfill % ('[' + out[0]['Status'] + '] ') +
+                   'Targets: ' + str(out[0]['TargetCount']) +
+                   ' Completed: ' + str(out[0]['CompletedCount']) +
+                   ' Errors: ' + str(out[0]['ErrorCount'])
+                   )
 
 
 @click.command()
@@ -86,7 +88,7 @@ def show(command_id, instanceid, show_stats, show_output, profile, region):
         res = ssm.list_command_invocations(
             command_id, instanceid, Details=True)
         if len(res) != 0:
-            print
+            click.echo()
             print_command_output_per_instance(res, show_output)
 
 
@@ -111,12 +113,12 @@ def docs(ctx, long_list, owner, platform, doc_version, doc_type, schema, profile
         'doc_type': 'DocumentType',
         'schema': 'SchemaVersion'
     }
-    print 'total ' + str(len(docs))
+    click.echo('total ' + str(len(docs)))
     # Map flag params to boto3 SSM list_documents() response
     output = []
     for d in docs:
         doc_info = [d['Name']]
-        for k, v in param_map.iteritems():
+        for k, v in param_map.items():
             # If flag param is set output the response value
             if ctx.params[k] or long_list:
                 if v == 'PlatformTypes':
@@ -132,8 +134,8 @@ def docs(ctx, long_list, owner, platform, doc_version, doc_type, schema, profile
            for x in zip(*output)]
     for d in output:
         for i in d:
-            print i.ljust(len(pad[d.index(i)])),
-        print
+            click.echo('%s ' % i.ljust(len(pad[d.index(i)])), nl=False)
+        click.echo()
 
 
 @click.command()
@@ -150,8 +152,8 @@ def get(ssm_docutment, document_version, profile, region):
         doc_info += ' v' + doc['DocumentVersion']
     if 'DocumentType' in doc:
         doc_info += ' ' + doc['DocumentType']
-    print doc_info
-    print doc['Content']
+    click.echo(doc_info)
+    click.echo(doc['Content'])
 
 
 @click.command()
@@ -171,40 +173,44 @@ def ls(num_invocations, show_stats, profile, region):
             res = ssm.list_command_invocations(
                 i['CommandId'], Details=True)
             if len(res) != 0:
-                print
+                click.echo()
                 print_command_output_per_instance(res)
-                print
+                click.echo()
 
 
 def command_stats(invocation, invocation_url=None):
     """Print results from ssm.list_commands()"""
     if invocation_url:
-        print '==> ' + invocation_url
+        click.echo('==> ' + invocation_url)
 
     i = invocation
-    print lfill % ('[' + i['Status'] + '] ') + i['CommandId']
-    print ' ' * lpad + 'Requested: '.ljust(lpad) + str(i['RequestedDateTime'].replace(microsecond=0))
-    print ' ' * lpad + 'Docutment: '.ljust(lpad) + i['DocumentName']
+    click.echo(lfill % ('[' + i['Status'] + '] ') + i['CommandId'])
+    click.echo(' ' * lpad + 'Requested: '.ljust(lpad) +
+               str(i['RequestedDateTime'].replace(microsecond=0)))
+    click.echo(' ' * lpad + 'Docutment: '.ljust(lpad) + i['DocumentName'])
     if len(i['Parameters']) > 0:
-        print ' ' * lpad + 'Paramters: '.ljust(lpad)
-        for k, v in i['Parameters'].iteritems():
-            print ' ' * lpad * 2 + '- ' + k + '="' + v[0] + '"'
+        click.echo(' ' * lpad + 'Paramters: '.ljust(lpad))
+        for k, v in i['Parameters'].items():
+            click.echo(' ' * lpad * 2 + '- ' + k + '="' + v[0] + '"')
     if len(i['InstanceIds']) > 0:
-        print ' ' * lpad + 'InstanceIds: '.ljust(lpad) + str(','.join(i['InstanceIds']))
+        click.echo(' ' * lpad + 'InstanceIds: '.ljust(lpad) +
+                   str(','.join(i['InstanceIds'])))
     if len(i['Targets']) > 0:
-        print ' ' * lpad + 'Target: '.ljust(lpad) + i['Targets'][0]['Key'] + ' - ' + i['Targets'][0]['Values'][0]
-    print ' ' * lpad + 'Stats: '.ljust(lpad) + 'Targets: ' + str(i['TargetCount']) + \
-        ' Completed: ' + str(i['CompletedCount']) + \
-        ' Errors: ' + str(i['ErrorCount'])
+        click.echo(' ' * lpad + 'Target: '.ljust(lpad) +
+                   i['Targets'][0]['Key'] + ' - ' + i['Targets'][0]['Values'][0])
+    click.echo(' ' * lpad + 'Stats: '.ljust(lpad) + 'Targets: ' + str(i['TargetCount']) +
+               ' Completed: ' + str(i['CompletedCount']) +
+               ' Errors: ' + str(i['ErrorCount']))
 
 
 def print_command_output_per_instance(invocations, show_output=False):
     """Print results from ssm.list_command_invocations()"""
     for i in invocations:
-        print ' ' * lpad + ' '.join(['***', i['Status'], i['InstanceId'], i['InstanceName']])
+        click.echo(
+            ' ' * lpad + ' '.join(['***', i['Status'], i['InstanceId'], i['InstanceName']]))
         if show_output:
             for cp in i['CommandPlugins']:
-                print cp['Output']
+                click.echo(cp['Output'])
 
 
 @click.group()
