@@ -139,7 +139,7 @@ def docs(ctx, long_list, owner, platform, doc_version, doc_type, schema, profile
 
 
 @click.command()
-@click.argument('ssm-docutment')
+@click.argument('ssm-document')
 @click.option('-V', '--document-version', default=None, help='Document Version')
 @click.option('-p', '--profile', default=None, help='AWS profile')
 @click.option('-r', '--region', default=None, help='AWS region')
