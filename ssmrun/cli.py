@@ -31,7 +31,7 @@ def cmd(target, command, show_stats, show_output, target_asg, target_stack, targ
     """Send SSM AWS-RunShellScript to target, quick emulation of virtual SSH interface"""
     # Parse parameters for the SSM Command
     ssm_document = "AWS-RunShellScript"
-    ssm_params = {"commands": command}
+    ssm_params = {"commands": [command]}
 
     # Shortcuts for targeting auto scaling groups and CloudFormation Stacks
     if target_asg:
