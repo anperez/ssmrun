@@ -139,12 +139,12 @@ def docs(ctx, long_list, owner, platform, doc_version, doc_type, schema, profile
 
 
 @click.command()
-@click.argument('ssm-docutment')
+@click.argument('ssm-document')
 @click.option('-V', '--document-version', default=None, help='Document Version')
 @click.option('-p', '--profile', default=None, help='AWS profile')
 @click.option('-r', '--region', default=None, help='AWS region')
-def get(ssm_docutment, document_version, profile, region):
-    """Get SSM docutment"""
+def get(ssm_document, document_version, profile, region):
+    """Get SSM document"""
     ssm = Ssm(profile=profile, region=region)
     doc = ssm.get_document(ssm_docutment, document_version)
     doc_info = doc['Name']
