@@ -35,13 +35,13 @@ Quickly run system commands on Linux nodes:
 .. code:: bash
 
   # Target nodes by name
-  $ ssm cmd <target> <system_command> -o
+  $ ssm cmd <target> <system_command>
 
   # Target nodes in an auto scaling group
-  $ ssm cmd <target> <system_command> -A -o
+  $ ssm cmd -A <target> <system_command>
 
   # Target nodes created with a CloudFormation stack (including CFN ASGs)
-  $ ssm cmd <target> <system_command> -S -o
+  $ ssm cmd -S <target> <system_command>
 
 
 Run SSM Command:
