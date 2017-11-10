@@ -7,7 +7,7 @@ requirements = [
 
 setup(
     name="ssmrun",
-    version="0.1.2",
+    version="0.1.3",
     url="https://github.com/Fullscreen/ssmrun",
 
     author="Fullscreen Devops",
