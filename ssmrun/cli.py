@@ -14,6 +14,60 @@ lpad = 13
 lfill = '%13s'
 
 
+
+@click.command()
+@click.argument('target')
+@click.argument('command')
+@click.option('-s', '--show-stats', is_flag=True)
+@click.option('-o', '--show-output', is_flag=True, default=True )
+@click.option('-A', '--target-asg', is_flag=True)
+@click.option('-S', '--target-stack', is_flag=True)
+@click.option('-k', '--target-key', default='Name', help='Target tag key (default: Name)')
+@click.option('-c', '--comment', default='ssmrun cli', help='Command invocation comment')
+@click.option('-i', '--interval', default=1.0, help='Check interval (default: 1.0s)')
+@click.option('-p', '--profile', default=None, help='AWS profile')
+@click.option('-r', '--region', default=None, help='AWS region')
+def cmd(target, command, show_stats, show_output, target_asg, target_stack, target_key, comment, interval, profile, region):
+    """Send SSM AWS-RunShellScript to target, quick emulation of virtual SSH interface"""
+    # Parse parameters for the SSM Command
+    ssm_document = "AWS-RunShellScript"
+    ssm_params = {"commands": [command]}
+
+    # Shortcuts for targeting auto scaling groups and CloudFormation Stacks
+    if target_asg:
+        target_key = 'aws:autoscaling:groupName'
+    if target_stack:
+        target_key = 'aws:cloudformation:stack-name'
+
+    ssm = Ssm(profile=profile, region=region)
+    cmd = ssm.send_command_to_targets(
+        document=ssm_document, key=target_key, value=target,
+        comment=comment, parameters=ssm_params)
+    #click.echo('==> ' + ssm.command_url(cmd['CommandId']))
+
+    while True:
+        time.sleep(interval)
+        out = ssm.list_commands(CommandId=cmd['CommandId'])
+        # Print final results when done
+        if out[0]['Status'] not in ['Pending', 'InProgress']:
+            if out[0]['TargetCount'] == out[0]['CompletedCount']:
+                command_stats(out[0])
+                if show_stats or show_output:
+                    res = ssm.list_command_invocations(
+                        cmd['CommandId'], Details=True)
+                    if len(res) != 0:
+                        click.echo()
+                        print_command_output_per_instance(res, show_output)
+                break
+        # Print progress
+        click.echo(lfill % ('[' + out[0]['Status'] + '] ') +
+                   'Targets: ' + str(out[0]['TargetCount']) +
+                   ' Completed: ' + str(out[0]['CompletedCount']) +
+                   ' Errors: ' + str(out[0]['ErrorCount'])
+                   )
+        
+
+
 @click.command()
 @click.argument('ssm-document')
 @click.argument('target')
@@ -228,6 +282,7 @@ main.add_command(get)
 main.add_command(ls)
 main.add_command(show)
 main.add_command(run)
+main.add_command(cmd)
 
 if __name__ == "__main__":
     main()
