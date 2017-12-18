@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import sys
 import time
 import click
@@ -13,9 +14,29 @@ sys.tracebacklimit = 0
 lpad = 13
 lfill = '%13s'
 
+@click.group()
+@click.pass_context
+@click.version_option(prog_name="ssmrun",
+                      version=__version__,
+                      message="Utilities for AWS EC2 SSM")
+@click.option(
+    "-p","--profile", default=os.environ.get("AWS_DEFAULT_PROFILE", None), help="AWS profile")
+@click.option(
+    "-r","--region",
+    default=os.environ.get("AWS_DEFAULT_REGION", "eu-west-1"),
+    help="AWS region")
+def main(ctx, region, profile):  # pragma: no cover
+    ctx.obj = {
+        "region": region,
+        "profile": profile,
+    }
+    pass
 
 
-@click.command()
+
+
+
+@main.command()
 @click.argument('target')
 @click.argument('command')
 @click.option('-s', '--show-stats', is_flag=True)
@@ -25,9 +46,8 @@ lfill = '%13s'
 @click.option('-k', '--target-key', default='Name', help='Target tag key (default: Name)')
 @click.option('-c', '--comment', default='ssmrun cli', help='Command invocation comment')
 @click.option('-i', '--interval', default=1.0, help='Check interval (default: 1.0s)')
-@click.option('-p', '--profile', default=None, help='AWS profile')
-@click.option('-r', '--region', default=None, help='AWS region')
-def cmd(target, command, show_stats, show_output, target_asg, target_stack, target_key, comment, interval, profile, region):
+@click.pass_context
+def cmd(ctx, target, command, show_stats, show_output, target_asg, target_stack, target_key, comment, interval):
     """Send SSM AWS-RunShellScript to target, quick emulation of virtual SSH interface"""
     # Parse parameters for the SSM Command
     ssm_document = "AWS-RunShellScript"
@@ -39,7 +59,7 @@ def cmd(target, command, show_stats, show_output, target_asg, target_stack, targ
     if target_stack:
         target_key = 'aws:cloudformation:stack-name'
 
-    ssm = Ssm(profile=profile, region=region)
+    ssm = Ssm(profile=ctx.obj["profile"], region=ctx.obj["region"])
     cmd = ssm.send_command_to_targets(
         document=ssm_document, key=target_key, value=target,
         comment=comment, parameters=ssm_params)
@@ -65,10 +85,10 @@ def cmd(target, command, show_stats, show_output, target_asg, target_stack, targ
                    ' Completed: ' + str(out[0]['CompletedCount']) +
                    ' Errors: ' + str(out[0]['ErrorCount'])
                    )
-        
 
 
-@click.command()
+
+@main.command()
 @click.argument('ssm-document')
 @click.argument('target')
 @click.option('-P', '--parameter', default=None, multiple=True, help='Pass one or more params (ex: -P p1="v1" -P p2="v2")')
@@ -79,9 +99,8 @@ def cmd(target, command, show_stats, show_output, target_asg, target_stack, targ
 @click.option('-k', '--target-key', default='Name', help='Target tag key (default: Name)')
 @click.option('-c', '--comment', default='ssmrun cli', help='Command invocation comment')
 @click.option('-i', '--interval', default=1.0, help='Check interval (default: 1.0s)')
-@click.option('-p', '--profile', default=None, help='AWS profile')
-@click.option('-r', '--region', default=None, help='AWS region')
-def run(ssm_document, target, parameter, show_stats, show_output, target_asg, target_stack, target_key, comment, interval, profile, region):
+@click.pass_context
+def run(ctx, ssm_document, target, parameter, show_stats, show_output, target_asg, target_stack, target_key, comment, interval):
     """Send SSM command to target"""
     # Parse parameters for the SSM Command
     ssm_params = {}
@@ -96,7 +115,7 @@ def run(ssm_document, target, parameter, show_stats, show_output, target_asg, ta
     if target_stack:
         target_key = 'aws:cloudformation:stack-name'
 
-    ssm = Ssm(profile=profile, region=region)
+    ssm = Ssm(profile=ctx.obj["profile"], region=ctx.obj["region"])
     cmd = ssm.send_command_to_targets(
         document=ssm_document, key=target_key, value=target,
         comment=comment, parameters=ssm_params)
@@ -124,16 +143,15 @@ def run(ssm_document, target, parameter, show_stats, show_output, target_asg, ta
                    )
 
 
-@click.command()
+@main.command()
 @click.argument('command-id')
 @click.option('-i', '--instanceId', default=None, help='Filter on instance id')
 @click.option('-s', '--show-stats', is_flag=True)
 @click.option('-o', '--show-output', is_flag=True)
-@click.option('-p', '--profile', default=None, help='AWS profile')
-@click.option('-r', '--region', default=None, help='AWS region')
-def show(command_id, instanceid, show_stats, show_output, profile, region):
+@click.pass_context
+def show(ctx, command_id, instanceid, show_stats, show_output):
     """Get status/output of command invocation"""
-    ssm = Ssm(profile=profile, region=region)
+    ssm = Ssm(profile=ctx.obj["profile"], region=ctx.obj["region"])
     out = ssm.list_commands(CommandId=command_id, InstanceId=instanceid)
     url = ssm.command_url(command_id)
     command_stats(out[0], url)
@@ -146,19 +164,17 @@ def show(command_id, instanceid, show_stats, show_output, profile, region):
             print_command_output_per_instance(res, show_output)
 
 
-@click.command()
+@main.command()
 @click.option('-l', '--long-list', is_flag=True, help='Detailed list')
 @click.option('-o', '--owner', is_flag=True, help='Show owner')
 @click.option('-P', '--platform', is_flag=True, help='Show platform types')
 @click.option('-d', '--doc-version', is_flag=True, help='Show document version')
 @click.option('-t', '--doc-type', is_flag=True, help='Show document type')
 @click.option('-s', '--schema', is_flag=True, help='Show schema version')
-@click.option('-p', '--profile', default=None, help='AWS profile')
-@click.option('-r', '--region', default=None, help='AWS region')
 @click.pass_context
-def docs(ctx, long_list, owner, platform, doc_version, doc_type, schema, profile, region):
+def docs(ctx, long_list, owner, platform, doc_version, doc_type, schema):
     """List SSM docutments"""
-    ssm = Ssm(profile=profile, region=region)
+    ssm = Ssm(profile=ctx.obj["profile"], region=ctx.obj["region"])
     docs = ssm.list_documents()
     param_map = {
         'owner': 'Owner',
@@ -192,14 +208,13 @@ def docs(ctx, long_list, owner, platform, doc_version, doc_type, schema, profile
         click.echo()
 
 
-@click.command()
+@main.command()
 @click.argument('ssm-docutment')
 @click.option('-V', '--document-version', default=None, help='Document Version')
-@click.option('-p', '--profile', default=None, help='AWS profile')
-@click.option('-r', '--region', default=None, help='AWS region')
-def get(ssm_docutment, document_version, profile, region):
+@click.pass_context
+def get(ctx, ssm_docutment, document_version):
     """Get SSM docutment"""
-    ssm = Ssm(profile=profile, region=region)
+    ssm = Ssm(profile=ctx.obj["profile"], region=ctx.obj["region"])
     doc = ssm.get_document(ssm_docutment, document_version)
     doc_info = doc['Name']
     if 'DocumentVersion' in doc:
@@ -210,14 +225,13 @@ def get(ssm_docutment, document_version, profile, region):
     click.echo(doc['Content'])
 
 
-@click.command()
+@main.command()
 @click.option('-n', '--num-invocations', default=5, help='Number of invocations (defailt: 5)')
 @click.option('-s', '--show-stats', is_flag=True)
-@click.option('-p', '--profile', default=None, help='AWS profile')
-@click.option('-r', '--region', default=None, help='AWS region')
-def ls(num_invocations, show_stats, profile, region):
+@click.pass_context
+def ls(ctx, num_invocations, show_stats):
     """List SSM command invocations"""
-    ssm = Ssm(profile=profile, region=region)
+    ssm = Ssm(profile=ctx.obj["profile"], region=ctx.obj["region"])
     invocations = ssm.list_commands()
     for i in invocations[:num_invocations]:
         url = ssm.command_url(i['CommandId'])
@@ -230,6 +244,7 @@ def ls(num_invocations, show_stats, profile, region):
                 click.echo()
                 print_command_output_per_instance(res)
                 click.echo()
+
 
 
 def command_stats(invocation, invocation_url=None):
@@ -266,23 +281,6 @@ def print_command_output_per_instance(invocations, show_output=False):
             for cp in i['CommandPlugins']:
                 click.echo(cp['Output'])
 
-
-@click.group()
-@click.version_option(version=__version__)
-def main(args=None):
-    """Utilities for AWS EC2 SSM
-
-       \b
-       ssm --help
-       ssm <command> --help
-    """
-
-main.add_command(docs)
-main.add_command(get)
-main.add_command(ls)
-main.add_command(show)
-main.add_command(run)
-main.add_command(cmd)
 
 if __name__ == "__main__":
     main()
