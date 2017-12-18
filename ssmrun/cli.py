@@ -20,7 +20,9 @@ lfill = '%13s'
                       version=__version__,
                       message="Utilities for AWS EC2 SSM")
 @click.option(
-    "-p","--profile", default=os.environ.get("AWS_DEFAULT_PROFILE", None), help="AWS profile")
+    "-p","--profile",
+    default=os.environ.get("AWS_DEFAULT_PROFILE", None),
+    help="AWS profile")
 @click.option(
     "-r","--region",
     default=os.environ.get("AWS_DEFAULT_REGION", "eu-west-1"),
@@ -211,7 +213,8 @@ def docs(ctx, long_list, owner, platform, doc_version, doc_type, schema):
 @main.command()
 @click.argument('ssm-document')
 @click.option('-V', '--document-version', default=None, help='Document Version')
-def get(ctx, ssm_document, document_version, profile, region):
+@click.pass_context
+def get(ctx, ssm_document, document_version):
     """Get SSM document"""
     ssm = Ssm(profile=ctx.obj["profile"], region=ctx.obj["region"])
     doc = ssm.get_document(ssm_docutment, document_version)
