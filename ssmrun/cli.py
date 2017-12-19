@@ -210,6 +210,7 @@ def docs(ctx, long_list, owner, platform, doc_version, doc_type, schema):
         click.echo()
 
 
+
 @main.command()
 @click.argument('ssm-document')
 @click.option('-V', '--document-version', default=None, help='Document Version')
@@ -217,7 +218,7 @@ def docs(ctx, long_list, owner, platform, doc_version, doc_type, schema):
 def get(ctx, ssm_document, document_version):
     """Get SSM document"""
     ssm = Ssm(profile=ctx.obj["profile"], region=ctx.obj["region"])
-    doc = ssm.get_document(ssm_docutment, document_version)
+    doc = ssm.get_document(ssm_document, document_version)
     doc_info = doc['Name']
     if 'DocumentVersion' in doc:
         doc_info += ' v' + doc['DocumentVersion']

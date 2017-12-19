@@ -18,11 +18,6 @@ Utilities for AWS EC2 SSM
 * run commands
 * list and show invocations
 
-The aws-cli package works on Python versions:
-
-* 2.6.5 and greater
-* 2.7.x and greater
-
 
 Installation
 ------------
@@ -34,6 +29,20 @@ Install via pip
 
 Usage
 -----
+
+Quickly run system commands on Linux nodes:
+
+.. code:: bash
+
+  # Target nodes by name
+  $ ssm cmd <target> <system_command>
+
+  # Target nodes in an auto scaling group
+  $ ssm cmd -A <target> <system_command>
+
+  # Target nodes created with a CloudFormation stack (including CFN ASGs)
+  $ ssm cmd -S <target> <system_command>
+
 
 Run SSM Command:
 
