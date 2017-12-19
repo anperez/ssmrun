@@ -14,17 +14,18 @@ sys.tracebacklimit = 0
 lpad = 13
 lfill = '%13s'
 
+
 @click.group()
 @click.pass_context
 @click.version_option(prog_name="ssmrun",
                       version=__version__,
                       message="Utilities for AWS EC2 SSM")
 @click.option(
-    "-p","--profile",
+    "-p", "--profile",
     default=os.environ.get("AWS_DEFAULT_PROFILE", None),
     help="AWS profile")
 @click.option(
-    "-r","--region",
+    "-r", "--region",
     default=os.environ.get("AWS_DEFAULT_REGION", "eu-west-1"),
     help="AWS region")
 def main(ctx, region, profile):  # pragma: no cover
@@ -35,14 +36,11 @@ def main(ctx, region, profile):  # pragma: no cover
     pass
 
 
-
-
-
 @main.command()
 @click.argument('target')
 @click.argument('command')
 @click.option('-s', '--show-stats', is_flag=True)
-@click.option('-o', '--show-output', is_flag=True, default=True )
+@click.option('-o', '--show-output', is_flag=True, default=True)
 @click.option('-A', '--target-asg', is_flag=True)
 @click.option('-S', '--target-stack', is_flag=True)
 @click.option('-k', '--target-key', default='Name', help='Target tag key (default: Name)')
@@ -87,7 +85,6 @@ def cmd(ctx, target, command, show_stats, show_output, target_asg, target_stack,
                    ' Completed: ' + str(out[0]['CompletedCount']) +
                    ' Errors: ' + str(out[0]['ErrorCount'])
                    )
-
 
 
 @main.command()
@@ -210,7 +207,6 @@ def docs(ctx, long_list, owner, platform, doc_version, doc_type, schema):
         click.echo()
 
 
-
 @main.command()
 @click.argument('ssm-document')
 @click.option('-V', '--document-version', default=None, help='Document Version')
@@ -247,7 +243,6 @@ def ls(ctx, num_invocations, show_stats):
                 click.echo()
                 print_command_output_per_instance(res)
                 click.echo()
-
 
 
 def command_stats(invocation, invocation_url=None):
