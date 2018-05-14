@@ -99,9 +99,3 @@ List and Show SSM Documents:
 
   # Get document content
   $ ssm get <doc-name>
-
-
-Authors
--------
-
-`ssmrun` was written by `Fullscreen Devops <devops@fullscreen.com>`_.
