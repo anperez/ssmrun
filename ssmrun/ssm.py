@@ -88,6 +88,5 @@ class Ssm(object):
     def command_url(self, CommandId):
         if self.region is None:
             self.region = 'us-east-1'
-        return 'https://console.aws.amazon.com/ec2/v2/home?region=' + \
-            self.region + '#Commands:CommandId=' + \
-            str(CommandId) + ';sort=CommandId'
+        return 'https://console.aws.amazon.com/systems-manager/run-command/' + \
+            str(CommandId) + '?region=' + self.region
